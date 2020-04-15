@@ -4,7 +4,8 @@ import os
 import logging
 from db import engine, Base
 from models import User
-from config import BotConfig
+from config import BotConfig, Youtube_dl_options
+import youtube_dl
 
 logger = telebot.logger
 telebot.logger.setLevel(logging.INFO)
@@ -68,7 +69,22 @@ def send_welcome(message):
 @bot.message_handler(regexp='https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 @is_joined_to_channel
 def download_from_url(message):
-    pass
+    with youtube_dl.YoutubeDL(Youtube_dl_options) as ydl:
+        try:
+            result = ydl.extract_info(url=message.text)
+        except youtube_dl.DownloadError:
+            logger.log(level=logging.INFO, msg='link is not valid')
+            return None
+
+        try:
+            video = open('files/' + result.get('title') + '-' + result.get('id') + '.' + result.get('ext'), 'rb')
+        except IOError:
+            logger.log(level=logging.INFO, msg='error in reading file')
+            return None
+
+        bot.send_video(chat_id=message.chat.id,
+                       reply_to_message_id=message.message_id,
+                       data=video)
 
 
 bot.polling()
