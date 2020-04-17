@@ -3,7 +3,7 @@ from telebot import types
 import os
 import logging
 from db import engine, Base
-from models import User
+from models import User, LinkVideo
 from config import BotConfig, Youtube_dl_options
 import youtube_dl
 
@@ -75,16 +75,28 @@ def download_from_url(message):
         except youtube_dl.DownloadError:
             logger.log(level=logging.INFO, msg='link is not valid')
             return None
+        link_video = LinkVideo.objects.get(link=message.text)
+        if not link_video:
+            try:
+                video = open('files/' + result.get('title') + '-' + result.get('id') + '.' + result.get('ext'), 'rb')
+            except IOError:
+                logger.log(level=logging.INFO, msg='error in reading file')
+                return None
 
-        try:
-            video = open('files/' + result.get('title') + '-' + result.get('id') + '.' + result.get('ext'), 'rb')
-        except IOError:
-            logger.log(level=logging.INFO, msg='error in reading file')
-            return None
-
-        bot.send_video(chat_id=message.chat.id,
-                       reply_to_message_id=message.message_id,
-                       data=video)
+            try:
+                res = bot.send_video(chat_id=message.chat.id,
+                                     reply_to_message_id=message.message_id,
+                                     data=video)
+                LinkVideo.objects.create(link=message.text, video_id=res.video.file_id)
+            except:
+                logger.log(level=logging.INFO, msg='video dont send')
+        else:
+            try:
+                bot.send_video(chat_id=message.chat.id,
+                               reply_to_message_id=message.message_id,
+                               data=link_video.video_id)
+            except:
+                logger.log(level=logging.INFO, msg='video dont send')
 
 
 bot.polling()
