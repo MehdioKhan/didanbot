@@ -66,6 +66,11 @@ def send_welcome(message):
     bot.send_message(message.chat.id, msg)
 
 
+@bot.message_handler(commands=['test'])
+def test(message):
+    bot.send_message(chat_id=message.chat.id, reply_to_message_id=message.message_id, text='OK!')
+
+
 @bot.message_handler(regexp='https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 @is_joined_to_channel
 def download_from_url(message):
